@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.Callable;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -20,19 +21,26 @@ import com.dumbdogdiner.challenges.runnables.ChallengeTimeUpdater;
 import com.dumbdogdiner.challenges.runnables.TimeChallengesListener;
 import com.dumbdogdiner.challenges.utils.Util;
 
+/**
+ * The core of the plugin
+ */
 public class Core extends JavaPlugin {
 
 	public static Core instance;
+
 	public File data;
 	public FileConfiguration dataconfig;
 
 	public void onEnable() {
 		instance = this;
+
 		File file = new File(getDataFolder(), "config.yml");
+
 		if (!file.exists()) {
 			getConfig().options().copyDefaults(true);
 			saveDefaultConfig();
 		}
+
 		saveConfig();
 
 		Bukkit.getPluginManager().registerEvents(new ChallengeListener(), this);
@@ -51,6 +59,7 @@ public class Core extends JavaPlugin {
 		if (ChallengesGUI.challengesInGUI.size() == 0) {
 			ChallengesGUI.resetChallengesInGUI();
 		}
+
 		Metrics metrics = new Metrics(this);
 		metrics.addCustomChart(new Metrics.SimplePie("used_language", new Callable<String>() {
 			@Override
@@ -67,6 +76,7 @@ public class Core extends JavaPlugin {
 		dataconfig.set("timer.time", Integer.toString(ChallengeTimeUpdater.counter));
 		dataconfig.createSection("challengesActive");
 		dataconfig.createSection("playerData");
+
 		for (Challenge challenge : ChallengesGUI.challengesInGUI) {
 			dataconfig.set("challengesActive." + challenge.getChallengeName(), challenge.getChallengeName());
 			for (String playerName : challenge.getCounters().keySet()) {
@@ -74,31 +84,42 @@ public class Core extends JavaPlugin {
 						challenge.getCounters().get(playerName));
 			}
 		}
+
 		saveYML(dataconfig, data);
 	}
 
 	public void registerDataFile() {
 		data = new File(getDataFolder(), "data.yml");
 		dataconfig = YamlConfiguration.loadConfiguration(data);
+
 		if (!dataconfig.contains("challengesActive")) {
 			dataconfig.createSection("challengesActive");
 			dataconfig.createSection("playerData");
 			dataconfig.createSection("timer");
-		} else {
-			if (getTimerTime() != -1) {
-				ChallengeTimeUpdater.setCounter(Integer.parseInt(dataconfig.getString("timer.time")));
-				for (String string : dataconfig.getConfigurationSection("challengesActive").getKeys(false)) {
-					Challenge challenge = Challenge.getChallengeByName(string);
-					LinkedHashMap<String, Integer> counters = new LinkedHashMap<String, Integer>();
-					for (String playerName : dataconfig.getConfigurationSection("playerData." + string)
-							.getKeys(false)) {
-						counters.put(playerName, dataconfig.getInt("playerData." + string + "." + playerName));
-					}
-					challenge.setCounters(counters);
-					ChallengesGUI.challengesInGUI.add(challenge);
-				}
-			}
+
+			saveYML(dataconfig, data);
+			return;
 		}
+
+		if (getTimerTime() == -1) {
+			saveYML(dataconfig, data);
+			return;
+		}
+
+		ChallengeTimeUpdater.setCounter(Integer.parseInt(dataconfig.getString("timer.time")));
+
+		for (String string : dataconfig.getConfigurationSection("challengesActive").getKeys(false)) {
+			Challenge challenge = Challenge.getChallengeByName(string);
+			LinkedHashMap<String, Integer> counters = new LinkedHashMap<String, Integer>();
+
+			for (String playerName : dataconfig.getConfigurationSection("playerData." + string).getKeys(false)) {
+				counters.put(playerName, dataconfig.getInt("playerData." + string + "." + playerName));
+			}
+
+			challenge.setCounters(counters);
+			ChallengesGUI.challengesInGUI.add(challenge);
+		}
+
 		saveYML(dataconfig, data);
 	}
 
@@ -118,26 +139,52 @@ public class Core extends JavaPlugin {
 		}
 	}
 
+	/**
+	 * Plugin command.
+	 */
 	public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args) {
-		if (sender instanceof Player) {
-			Player player = (Player) sender;
-			if (cmd.getName().equalsIgnoreCase("challenges")) {
-				if (args.length == 0) {
-					new ChallengesGUI(player);
-				} else if (args.length == 1) {
-					if (args[0].equalsIgnoreCase("time")) {
-						player.sendMessage(Util.color(getConfig().getString("messages.time-message").replace("%time%",
-								Util.timeMessage(ChallengeTimeUpdater.counter))));
-					} else if (args[0].equalsIgnoreCase("reset")) {
-						if (player.hasPermission("challenges.admin")) {
-							ChallengeTimeUpdater.counter = 86400;
-							ChallengesGUI.resetChallengesInGUI();
-							player.sendMessage(Util.color(getConfig().getString("messages.challenges-reset-message")));
-						}
-					}
+		if (!(sender instanceof Player)) {
+			sender.sendMessage(ChatColor.RED + "This command can only be run as a player!");
+			return true;
+		}
+
+		if (!cmd.getName().equalsIgnoreCase("challenges")) {
+			return true;
+		}
+
+		/**
+		 * The player who ran the command.
+		 */
+		var player = (Player) sender;
+
+		// If no args specified, open the challenge GUI.
+		if (args.length == 0) {
+			new ChallengesGUI(player);
+			return true;
+		}
+
+		if (args.length == 1) {
+			// "time" - get the remaining time until challenges can be claimed
+			if (args[0].equalsIgnoreCase("time")) {
+				player.sendMessage(Util.color(getConfig().getString("messages.time-message").replace("%time%",
+						Util.timeMessage(ChallengeTimeUpdater.counter))));
+				return true;
+			}
+
+			if (args[0].equalsIgnoreCase("reset")) {
+				if (!player.hasPermission("challenges.admin")) {
+					sender.sendMessage(ChatColor.RED + "Missing permissions.");
+					return true;
 				}
+
+				ChallengeTimeUpdater.counter = 86400;
+				ChallengesGUI.resetChallengesInGUI();
+				player.sendMessage(Util.color(getConfig().getString("messages.challenges-reset-message")));
+				return true;
 			}
 		}
+
+		sender.sendMessage(ChatColor.RED + "Usage: /challenges [time/reset]");
 		return true;
 	}
 }

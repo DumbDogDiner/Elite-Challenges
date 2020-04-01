@@ -15,7 +15,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import com.sk89q.worldguard.bukkit.WGBukkit;
@@ -27,17 +27,21 @@ import com.dumbdogdiner.challenges.Challenge;
 import com.dumbdogdiner.challenges.Core;
 import com.dumbdogdiner.challenges.gui.ChallengesGUI;
 
-@SuppressWarnings("deprecation")
+/**
+ * Class containing various utility methods.
+ */
 public class Util {
 
+	/**
+	 * Fetch a player's skull.
+	 */
 	public static String getSkullItem() {
-		if (Bukkit.getVersion().contains("1.13")) {
-			return "LEGACY_SKULL_ITEM";
-		} else {
-			return "SKULL_ITEM";
-		}
+		return "SKULL_ITEM";
 	}
 
+	/**
+	 * Sort a LinkedHashMap by values.
+	 */
 	public static LinkedHashMap<String, Integer> sortByValue(LinkedHashMap<String, Integer> map) {
 		LinkedHashMap<String, Integer> sortedMap = new LinkedHashMap<String, Integer>();
 		ArrayList<String> takenKeys = new ArrayList<String>();
@@ -58,14 +62,24 @@ public class Util {
 		return sortedMap;
 	}
 
+	/**
+	 * Return a string containing a nicely formatted date.
+	 */
 	public static String getDateMessage() {
 		Calendar c = Calendar.getInstance();
+
 		String month = c.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.ENGLISH);
-		String date = String.valueOf(c.getTime().getDate());
+
+		String date = String.valueOf(c.get(Calendar.MONTH));
 		String year = c.getTime().toString().split(" ")[5];
+
 		return month + " " + date + ", " + year;
 	}
 
+	/**
+	 * Generate a string displaying the given number of seconds in days, hours,
+	 * minutes, and seconds.
+	 */
 	public static String timeMessage(int seconds) {
 		int day = (int) TimeUnit.SECONDS.toDays(seconds);
 		long hours = TimeUnit.SECONDS.toHours(seconds) - (day * 24);
@@ -74,10 +88,16 @@ public class Util {
 		return Long.toString(hours) + "h " + Long.toString(minute) + "m " + Long.toString(second) + "s";
 	}
 
+	/**
+	 * Extract color.
+	 */
 	public static String color(String string) {
 		return ChatColor.translateAlternateColorCodes('&', string);
 	}
 
+	/**
+	 * Generate a random integer in a given range.
+	 */
 	public static int randInt(int min, int max) {
 		Random rand = new Random();
 		int randomNum = rand.nextInt((max - min) + 1) + min;
@@ -85,39 +105,54 @@ public class Util {
 		return randomNum;
 	}
 
-	public static ItemStack createItemStack(Material type, int amt, String name, int data, List<String> lore) {
-		ItemStack stack = null;
-		if (data != -1) {
-			stack = new ItemStack(type, amt, (short) data);
-		} else {
-			stack = new ItemStack(type, amt);
-		}
-		ItemMeta im = stack.getItemMeta();
+	/**
+	 * Create an item stack.
+	 */
+	public static ItemStack createItemStack(Material type, int amt, String name, int durability, List<String> lore) {
+		// Create a new item stack and get its data.
+		var stack = new ItemStack(type, amt);
+		var im = stack.getItemMeta();
+
 		im.setDisplayName(Util.color(name));
+
+		if (durability != -1) {
+			((Damageable) im).setDamage(durability);
+		}
+
+		// Add lore to the item.
 		ArrayList<String> lorelist = new ArrayList<String>();
 		for (String s : lore) {
 			lorelist.add(Util.color(s));
 		}
 		im.setLore(lorelist);
-		stack.setItemMeta(im);
 
+		stack.setItemMeta(im);
 		return stack;
 	}
 
+	/**
+	 * Create an ItemStack containing the skull of the given player.
+	 */
 	public static ItemStack createItemStackSkull(String playerName, String skullName, List<String> lores) {
-		ItemStack stack = new ItemStack(Material.valueOf(getSkullItem()), 1, (short) 3);
+		ItemStack stack = new ItemStack(Material.valueOf(getSkullItem()), 1);
 		SkullMeta im = (SkullMeta) Bukkit.getItemFactory().getItemMeta(Material.valueOf(getSkullItem()));
-		im.setOwner(playerName);
+
+		im.setOwningPlayer(Bukkit.getPlayer(playerName));
 		im.setDisplayName(Util.color(skullName));
+
 		ArrayList<String> lore = new ArrayList<String>();
 		for (String str : lores) {
 			lore.add(Util.color(str));
 		}
 		im.setLore(lore);
+
 		stack.setItemMeta(im);
 		return stack;
 	}
 
+	/**
+	 * Return whether challenges are enabled for a player in a given world.
+	 */
 	public static boolean isInEnabledWorld(Player player) {
 		String world = player.getWorld().getName();
 		if (Core.instance.getConfig().getBoolean("per-world.is-enabled") == true) {
@@ -132,6 +167,9 @@ public class Util {
 		return false;
 	}
 
+	/**
+	 * Sort ranks.
+	 */
 	public static void sortRanks() {
 		for (Challenge challenge : ChallengesGUI.challengesInGUI) {
 			for (Player player : Bukkit.getOnlinePlayers()) {
@@ -144,6 +182,9 @@ public class Util {
 		}
 	}
 
+	/**
+	 * Fetch from WorldGuard whether PVP is allowed in a given location.
+	 */
 	public static boolean allowsPVP(Location loc) {
 		ApplicableRegionSet set = WGBukkit.getPlugin().getRegionManager(loc.getWorld()).getApplicableRegions(loc);
 		if (set.queryState(null, DefaultFlag.PVP) == State.DENY) {
@@ -152,6 +193,9 @@ public class Util {
 		return true;
 	}
 
+	/**
+	 * Fetch from WorldGuard whether block breaking is allowed in a given location.
+	 */
 	public static boolean allowsBreaking(Location loc) {
 		ApplicableRegionSet set = WGBukkit.getPlugin().getRegionManager(loc.getWorld()).getApplicableRegions(loc);
 		if (set.queryState(null, DefaultFlag.BLOCK_BREAK) == State.DENY) {
@@ -160,6 +204,9 @@ public class Util {
 		return true;
 	}
 
+	/**
+	 * Fetch from WorldGuard whether block placing is allowed in a given location.
+	 */
 	public static boolean allowsPlacing(Location loc) {
 		ApplicableRegionSet set = WGBukkit.getPlugin().getRegionManager(loc.getWorld()).getApplicableRegions(loc);
 		if (set.queryState(null, DefaultFlag.BLOCK_PLACE) == State.DENY) {
@@ -168,6 +215,9 @@ public class Util {
 		return true;
 	}
 
+	/**
+	 * Return a boolean determining if Factions is running on the server.
+	 */
 	public static boolean hasFactions() {
 		if (Bukkit.getPluginManager().getPlugin("Factions") != null) {
 			return true;
