@@ -15,6 +15,9 @@ import com.dumbdogdiner.challenges.Core;
 import com.dumbdogdiner.challenges.gui.ChallengesGUI;
 import com.dumbdogdiner.challenges.utils.Util;
 
+/**
+ * A runnable that updates the timers of existing challenges.
+ */
 public class ChallengeTimeUpdater extends BukkitRunnable {
 
 	public static int counter = 86400;
@@ -26,17 +29,24 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 		}
 	}
 
+	/**
+	 * Reset challenges.
+	 */
 	public void resetChallenges() {
 		FileConfiguration config = Core.instance.getConfig();
-		counter = 86400;
+
+		setCounter(86400);
 		Util.sortRanks();
+
 		for (Challenge challenge : ChallengesGUI.challengesInGUI) {
 			ArrayList<String> playerNames = new ArrayList<String>();
 			playerNames.addAll(challenge.getCounters().keySet());
+
 			for (String key : config.getConfigurationSection("rewards").getKeys(false)) {
 				for (String i : config.getConfigurationSection("rewards." + key).getKeys(false)) {
 					String rewardPath = "rewards." + key + "." + i;
 					int rank = Integer.parseInt(key) - 1;
+
 					if (isPlayer(playerNames, rank) != null) {
 						if (isMaterial(config.getString(rewardPath + ".material")) != null) {
 							ItemStack reward = Util.createItemStack(
@@ -49,6 +59,7 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 								int level = Integer.parseInt(ench.split(":")[1]);
 								reward.addUnsafeEnchantment(enchant, level);
 							}
+
 							Bukkit.getPlayer(playerNames.get(rank)).getInventory().addItem(reward);
 						} else {
 							for (String string : config.getStringList(rewardPath + ".commands")) {
@@ -60,6 +71,7 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 				}
 			}
 		}
+
 		for (String string : config.getStringList("messages.challenge-finished-broadcast")) {
 			int o = 0;
 			for (Challenge challenge : ChallengesGUI.challengesInGUI) {
@@ -81,6 +93,9 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 		ChallengesGUI.resetChallengesInGUI();
 	}
 
+	/**
+	 * Extract a player from a ranking list, and check if it exists.
+	 */
 	public Player isPlayer(ArrayList<String> playerNames, int rank) {
 		try {
 			return Bukkit.getPlayer(playerNames.get(rank));
@@ -89,6 +104,9 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 		}
 	}
 
+	/**
+	 * Safely access a material object.
+	 */
 	public Material isMaterial(String string) {
 		try {
 			return Material.valueOf(string);
@@ -97,10 +115,16 @@ public class ChallengeTimeUpdater extends BukkitRunnable {
 		}
 	}
 
+	/**
+	 * Return the current counter value.
+	 */
 	public static int getCounter() {
 		return counter;
 	}
 
+	/**
+	 * Set the current counter value.
+	 */
 	public static void setCounter(int counter) {
 		ChallengeTimeUpdater.counter = counter;
 	}
