@@ -1,6 +1,0 @@
-name: EliteChallenges
-authors: [BourneDev, Splodgebox]
-version: 1.0
-main: me.bournedev.challenges.Core
-commands:
-   challenges:
