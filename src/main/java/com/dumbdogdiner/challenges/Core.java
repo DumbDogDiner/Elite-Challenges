@@ -3,7 +3,6 @@ package com.dumbdogdiner.challenges;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.concurrent.Callable;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -59,14 +58,6 @@ public class Core extends JavaPlugin {
 		if (ChallengesGUI.challengesInGUI.size() == 0) {
 			ChallengesGUI.resetChallengesInGUI();
 		}
-
-		Metrics metrics = new Metrics(this);
-		metrics.addCustomChart(new Metrics.SimplePie("used_language", new Callable<String>() {
-			@Override
-			public String call() throws Exception {
-				return getConfig().getString("language", "en");
-			}
-		}));
 
 		new ChallengeTimeUpdater().runTaskTimer(this, 20, 20);
 		new TimeChallengesListener().runTaskTimer(this, 20, 20);

@@ -42,3 +42,9 @@ hs_err_pid*
 .project
 .classpath
 .settings/
+.vscode/
+
+bin/
+
+# I hate macOS
+.DS_Store
