@@ -1,6 +1,0 @@
-name: EliteChallenges
-authors: [BourneDev, Splodgebox, skyefoxie]
-version: 1.0
-main: com.dumbdogdiner.challenges.Core
-commands:
-  challenges:

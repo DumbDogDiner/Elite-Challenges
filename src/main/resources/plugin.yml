@@ -1,6 +1,12 @@
 name: EliteChallenges
 authors: [BourneDev, Splodgebox, skyefoxie]
 version: 1.0
+
+api-version: 1.15
+depend: [WorldEdit, WorldGuard]
+softdepend: [Factions]
 main: com.dumbdogdiner.challenges.Core
+
+description: Create and manage daily challenges, along with reward and loot.
 commands:
   challenges:
